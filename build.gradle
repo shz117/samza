@@ -526,6 +526,7 @@ project(":samza-hdfs_$scalaVersion") {
       exclude module: 'servlet-api'
       exclude module: 'zookeeper'
     }
+    compile('org.apache.parquet:parquet-hadoop:1.9.0')
 
     testCompile "junit:junit:$junitVersion"
     testCompile "org.scalatest:scalatest_$scalaVersion:$scalaTestVersion"
