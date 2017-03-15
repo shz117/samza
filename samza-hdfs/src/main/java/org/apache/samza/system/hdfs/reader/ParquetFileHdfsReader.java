@@ -34,12 +34,12 @@ import org.slf4j.LoggerFactory;
 
 
 /**
- * An implementation of the HdfsReader that reads and processes avro format
+ * An implementation of the HdfsReader that reads and processes parquet format
  * files.
  */
 public class ParquetFileHdfsReader implements SingleFileHdfsReader {
 
-    private static final Logger LOG = LoggerFactory.getLogger(AvroFileHdfsReader.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ParquetFileHdfsReader.class);
     private int offset;
     private Group lastGroup;
 
@@ -54,6 +54,7 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
 
     @Override
     public void open(String pathStr, String singleFileOffset) {
+        LOG.info(String.format("%s: Open file [%s] with file offset [%s] for read", systemStreamPartition, pathStr, singleFileOffset));
         Path path = new Path(pathStr);
         try {
             parquetReader = ParquetReader.builder(new GroupReadSupport(), path).build();
@@ -94,11 +95,13 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
 
     @Override
     public void close() {
+        LOG.info("About to close file reader for " + systemStreamPartition);
         try {
             parquetReader.close();
         } catch (IOException e) {
             throw new SamzaException(e);
         }
+        LOG.info("File reader closed for " + systemStreamPartition);
     }
 
     @Override
