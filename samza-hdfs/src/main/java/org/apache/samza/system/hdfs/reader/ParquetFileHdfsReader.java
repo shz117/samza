@@ -70,10 +70,10 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
     @Override
     public void seek(String singleFileOffset) {
         int bootstrapOffset = Integer.parseInt(singleFileOffset);
-        if (bootstrapOffset < nextOffset) nextOffset = 0;
-        for (int i = nextOffset; i < bootstrapOffset; i++) {
-            if (hasNext()) readNext();
+        if (bootstrapOffset < nextOffset) {
+            throw new SamzaException("Can not rewind with seek");
         }
+        while (hasNext() && nextOffset < bootstrapOffset) readNext();
     }
 
     @Override
