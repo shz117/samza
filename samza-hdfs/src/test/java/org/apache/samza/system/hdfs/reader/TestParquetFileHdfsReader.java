@@ -2,6 +2,7 @@ package org.apache.samza.system.hdfs.reader;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.apache.samza.Partition;
 import org.apache.samza.system.IncomingMessageEnvelope;
@@ -71,6 +72,14 @@ public class TestParquetFileHdfsReader {
         }
         assertArrayEquals(expected, results.toArray());
         preader.close();
+    }
+
+    @Test(expected = NoSuchElementException.class)
+    public void testNextThrowsExceptionWhenNoMoreElement() {
+        preader.open(PARQUET_FILE, "0");
+        while (true) {
+            preader.readNext();
+        }
     }
 
 }

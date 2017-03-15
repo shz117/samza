@@ -21,6 +21,7 @@ package org.apache.samza.system.hdfs.reader;
 
 import java.lang.Integer;
 import java.io.IOException;
+import java.util.NoSuchElementException;
 
 import org.apache.parquet.example.data.Group;
 import org.apache.parquet.hadoop.ParquetReader;
@@ -40,8 +41,9 @@ import org.slf4j.LoggerFactory;
 public class ParquetFileHdfsReader implements SingleFileHdfsReader {
 
     private static final Logger LOG = LoggerFactory.getLogger(ParquetFileHdfsReader.class);
-    private int offset;
-    private Group lastGroup;
+    private int nextOffset;
+    private Group nextGroup;
+    private boolean atEnd;
 
     private final SystemStreamPartition systemStreamPartition;
     private ParquetReader<Group> parquetReader;
@@ -58,6 +60,7 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
         Path path = new Path(pathStr);
         try {
             parquetReader = ParquetReader.builder(new GroupReadSupport(), path).build();
+            nextOffset = 0;
             seek(singleFileOffset);
         } catch (IOException e) {
             throw new SamzaException(e);
@@ -67,26 +70,41 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
     @Override
     public void seek(String singleFileOffset) {
         int bootstrapOffset = Integer.parseInt(singleFileOffset);
-        offset = 0;
-        // TODO: seek updates internal state lastGroup singleFileOffset times, could be avoid...
-        for (int i = 0; i < bootstrapOffset; i++) {
-            if (!hasNext()) break;
+        if (bootstrapOffset < nextOffset) nextOffset = 0;
+        for (int i = nextOffset; i < bootstrapOffset; i++) {
+            if (hasNext()) readNext();
         }
     }
 
     @Override
     public IncomingMessageEnvelope readNext() {
-        return new IncomingMessageEnvelope(systemStreamPartition, Integer.toString(offset++), null, lastGroup);
+        if (!hasNext()) {
+            throw new NoSuchElementException();
+        }
+
+
+
+        IncomingMessageEnvelope ret = new IncomingMessageEnvelope(systemStreamPartition, Integer.toString(nextOffset++), null, nextGroup);
+        nextGroup = null;
+        return ret;
     }
 
     @Override
     public boolean hasNext() {
+        if (atEnd) {
+            return false;
+        }
+
+        if (nextGroup != null) {
+            return true;
+        }
+
         try {
-            Group group = parquetReader.read();
-            if (group == null) {
+            nextGroup = parquetReader.read();
+            if (nextGroup == null) {
+                atEnd = true;
                 return false;
             }
-            lastGroup = group;
             return true;
         } catch (IOException e) {
             throw new SamzaException(e);
@@ -106,6 +124,6 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
 
     @Override
     public String nextOffset() {
-        return Integer.toString(offset);
+        return Integer.toString(nextOffset);
     }
 }
