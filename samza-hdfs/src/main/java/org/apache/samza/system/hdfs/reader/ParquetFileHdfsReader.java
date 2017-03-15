@@ -81,9 +81,6 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
         if (!hasNext()) {
             throw new NoSuchElementException();
         }
-
-
-
         IncomingMessageEnvelope ret = new IncomingMessageEnvelope(systemStreamPartition, Integer.toString(nextOffset++), null, nextGroup);
         nextGroup = null;
         return ret;
@@ -94,11 +91,9 @@ public class ParquetFileHdfsReader implements SingleFileHdfsReader {
         if (atEnd) {
             return false;
         }
-
         if (nextGroup != null) {
             return true;
         }
-
         try {
             nextGroup = parquetReader.read();
             if (nextGroup == null) {
